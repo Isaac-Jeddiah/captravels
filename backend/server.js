@@ -21,7 +21,10 @@ mongoose.set('strictQuery', false);
 // Connect with retries and only start server after Mongo connects
 async function connectWithRetry(attempt = 1) {
   const maxAttempts = 5;
-  const opts = { useNewUrlParser: true, useUnifiedTopology: true, serverSelectionTimeoutMS: 5000 };
+  // `useNewUrlParser` and `useUnifiedTopology` are no longer supported options in the
+  // mongoose version used by this project — remove them and keep serverSelectionTimeoutMS
+  // to fail faster when the database is unreachable.
+  const opts = { serverSelectionTimeoutMS: 5000 };
   try {
     await mongoose.connect(process.env.MONGO_URI, opts);
     console.log("MongoDB connected");
@@ -93,6 +96,11 @@ function sendRefreshToken(res, token) {
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
 }
+
+app.get('/health', (req, res) => {
+  const states = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
+  return res.json({ dbState: mongoose.connection.readyState, dbStatus: states[mongoose.connection.readyState] });
+});
 
 app.post("/api/register", async (req, res) => {
   try {
