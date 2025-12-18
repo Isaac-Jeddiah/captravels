@@ -40,8 +40,11 @@ function startServer() {
 
 
 // start connecting now
-connectDB();
-startServer();
+async function init() {
+  await connectDB();
+  startServer();
+}
+init();
 
 async function verifyTurnstile(token, ip) {
   const url = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
