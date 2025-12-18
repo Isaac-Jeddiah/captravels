@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Turnstile from "react-turnstile";
+import { TURNSTILE_SITEKEY } from "./config";
 import { useAuth } from "./AuthContext";
 import "./styles.css";
 
@@ -18,11 +19,18 @@ function Login() {
   const navigate = useNavigate();
   const auth = useAuth();
 
+  const sitekey = import.meta.env.VITE_TURNSTILE_SITEKEY || TURNSTILE_SITEKEY;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
     setError("");
     
+    if (!sitekey) {
+      setError("Captcha site key is missing. Set VITE_TURNSTILE_SITEKEY or configure TURNSTILE_SITEKEY in .env");
+      return;
+    }
+
     if (!captchaToken) {
       setError("Please complete the security check.");
       return;
@@ -34,6 +42,8 @@ function Login() {
       setMessage(data.message || "Login successful.");
       navigate("/home");
     } catch (err) {
+      console.error("Login error:", err);
+      if (err.details) console.info("Verification details:", err.details);
       setError(err.message || "Login failed.");
     } finally {
       setLoading(false);
@@ -80,13 +90,19 @@ function Login() {
           <div style={{ marginBottom: 16 }}>
             
             <Turnstile
-              sitekey={
-                import.meta.env.VITE_TURNSTILE_SITEKEY ||
-                "0x4AAAAAACHUanDDTh-MvmtyamZ6oiyn-HI"
-              }
-              onSuccess={(token) => setCaptchaToken(token)}
-              onError={() => setCaptchaToken("")}
-              onExpire={() => setCaptchaToken("")}
+              sitekey={import.meta.env.VITE_TURNSTILE_SITEKEY || TURNSTILE_SITEKEY}
+              onSuccess={(token) => {
+                console.log("Turnstile token:", token);
+                setCaptchaToken(token);
+              }}
+              onError={(err) => {
+                console.error("Turnstile error:", err);
+                setCaptchaToken("");
+              }}
+              onExpire={() => {
+                console.log("Turnstile expired");
+                setCaptchaToken("");
+              }}
               theme="light"
             />
           </div>

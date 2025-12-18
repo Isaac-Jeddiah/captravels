@@ -11,7 +11,8 @@ const User = require("./models/User");
 
 const app = express();
 
-app.use(cors({ origin:["https://captravels-nfi7.vercel.app", "http://localhost:5173"], credentials: true }));
+const allowedOrigins = (process.env.CORS_ORIGINS || "https://captravels-nfi7.vercel.app,http://localhost:5173").split(",").map(s => s.trim());
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(bodyParser.json());
 app.use(cookieParser());
 
@@ -23,7 +24,8 @@ mongoose
 async function verifyTurnstile(token, ip) {
   const url = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
   const params = new URLSearchParams();
-  params.append("secret", process.env.TURNSTILE_SECRET_KEY);
+  const secretKey = process.env.APP_ENV === 'production' ? (process.env.TURNSTILE_SECRET_KEY_PROD || process.env.TURNSTILE_SECRET_KEY) : (process.env.TURNSTILE_SECRET_KEY_DEV || process.env.TURNSTILE_SECRET_KEY);
+  params.append("secret", secretKey);
   params.append("response", token);
   if (ip) params.append("remoteip", ip);
   try {
@@ -105,7 +107,7 @@ app.post("/api/login", async (req, res) => {
     const verification = await verifyTurnstile(captchaToken, ip);
     if (!verification || verification.success !== true) {
       console.log("Turnstile verification failed on login:", verification);
-      return res.status(400).json({ message: "Captcha verification failed" });
+      return res.status(400).json({ message: "Captcha verification failed", details: verification });
     }
 
     const user = await User.findOne({ email });

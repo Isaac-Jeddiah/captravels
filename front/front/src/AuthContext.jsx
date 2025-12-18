@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { API_URL } from "./config";
 const AuthContext = createContext();
 
 function parseJwt(token) {
@@ -77,7 +77,11 @@ export function AuthProvider({ children }) {
       body: JSON.stringify({ email, password, captchaToken }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.message || "Login failed");
+    if (!res.ok) {
+      const err = new Error(data.message || "Login failed");
+      err.details = data.details;
+      throw err;
+    }
     setUser(data.user);
     setAccessToken(data.accessToken);
     scheduleRefresh(data.accessToken);
@@ -92,7 +96,11 @@ export function AuthProvider({ children }) {
       body: JSON.stringify({ email, password, dialCode, mobile, captchaToken }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.message || "Registration failed");
+    if (!res.ok) {
+      const err = new Error(data.message || "Registration failed");
+      err.details = data.details;
+      throw err;
+    }
     setUser(data.user);
     setAccessToken(data.accessToken);
     scheduleRefresh(data.accessToken);

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Turnstile from "react-turnstile";
+import { TURNSTILE_SITEKEY } from "./config";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import "./styles.css";
@@ -31,7 +32,13 @@ function Register() {
   const navigate = useNavigate();
   const auth = useAuth();
 
+  const sitekey = import.meta.env.VITE_TURNSTILE_SITEKEY || TURNSTILE_SITEKEY;
+
   const handleSubmit = async (e) => {
+    if (!sitekey) {
+      setError("Captcha site key is missing. Set VITE_TURNSTILE_SITEKEY or configure TURNSTILE_SITEKEY in .env");
+      return;
+    }
     e.preventDefault();
     setError("");
     setMessage("");
@@ -62,8 +69,9 @@ function Register() {
       setMessage(data.message || "Registration successful.");
       navigate("/home");
     } catch (err) {
+      console.error("Register error:", err);
+      if (err.details) console.info("Verification details:", err.details);
       setError(err.message || "Registration failed.");
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -182,12 +190,19 @@ function Register() {
           <div style={{ margin: "12px 0 16px" }}>
            
             <Turnstile
-              sitekey={
-                import.meta.env.VITE_TURNSTILE_SITEKEY
-              }
-              onSuccess={(token) => setCaptchaToken(token)}
-              onError={() => setCaptchaToken("")}
-              onExpire={() => setCaptchaToken("")}
+              sitekey={import.meta.env.VITE_TURNSTILE_SITEKEY || TURNSTILE_SITEKEY}
+              onSuccess={(token) => {
+                console.log("Turnstile token:", token);
+                setCaptchaToken(token);
+              }}
+              onError={(err) => {
+                console.error("Turnstile error:", err);
+                setCaptchaToken("");
+              }}
+              onExpire={() => {
+                console.log("Turnstile expired");
+                setCaptchaToken("");
+              }}
               theme="light"
             />
           </div>
