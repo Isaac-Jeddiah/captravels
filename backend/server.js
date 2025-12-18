@@ -88,6 +88,7 @@ app.get('/health', (req, res) => {
 });
 
 app.post("/api/register", async (req, res) => {
+  await connectDB(); // ensure DB is connected
   try {
     console.log("Register body:", req.body);
     const { email, password, dialCode, mobile, captchaToken } = req.body;
@@ -125,6 +126,7 @@ app.post("/api/register", async (req, res) => {
 });
 
 app.post("/api/login", async (req, res) => {
+  await connectDB(); // ensure DB is connected
   try {
     const { email, password, captchaToken } = req.body;
     if (!email || !password || !captchaToken) {
@@ -189,6 +191,7 @@ app.post('/api/refresh', async (req, res) => {
 
 // logout - clear refresh token cookie and user stored token
 app.post('/api/logout', async (req, res) => {
+  await connectDB();
   try {
     const token = req.cookies.refreshToken;
     if (token) {
