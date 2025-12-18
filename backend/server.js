@@ -16,10 +16,47 @@ app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.error("Mongo error:", err));
+mongoose.set('strictQuery', false);
+
+// Connect with retries and only start server after Mongo connects
+async function connectWithRetry(attempt = 1) {
+  const maxAttempts = 5;
+  const opts = { useNewUrlParser: true, useUnifiedTopology: true, serverSelectionTimeoutMS: 5000 };
+  try {
+    await mongoose.connect(process.env.MONGO_URI, opts);
+    console.log("MongoDB connected");
+    startServer();
+  } catch (err) {
+    console.error(`Mongo connect attempt ${attempt} failed:`, err.message || err);
+    if (attempt < maxAttempts) {
+      const delay = Math.min(30000, 2000 * attempt);
+      console.log(`Retrying Mongo connection in ${delay}ms...`);
+      setTimeout(() => connectWithRetry(attempt + 1), delay);
+    } else {
+      console.error("Could not connect to MongoDB after multiple attempts. Exiting.");
+      process.exit(1);
+    }
+  }
+}
+
+function startServer() {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => console.log(`Server running on ${PORT}`));
+}
+
+// ensure DB is connected before handling /api requests
+function ensureDb(req, res, next) {
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({ message: "Database not connected" });
+  }
+  next();
+}
+
+// mount DB-check middleware for our API routes
+app.use('/api', ensureDb);
+
+// start connecting now
+connectWithRetry();
 
 async function verifyTurnstile(token, ip) {
   const url = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
