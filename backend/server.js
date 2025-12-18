@@ -11,7 +11,7 @@ const User = require("./models/User");
 
 const app = express();
 
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+app.use(cors({ origin:["https://captravels-nfi7.vercel.app", "http://localhost:5173"], credentials: true }));
 app.use(bodyParser.json());
 app.use(cookieParser());
 
