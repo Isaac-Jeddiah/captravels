@@ -3,7 +3,7 @@ import Turnstile from "react-turnstile";
 import { TURNSTILE_SITEKEY } from "./config";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
-import "./styles.css";
+import "./Register.css";
 
 function Register() {
   const [form, setForm] = useState({
